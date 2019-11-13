@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<configuration scan="true" scanPeriod="30 seconds">
+    <contextName>${project.artifactId}</contextName>
+
+    <property name="PROJECT_LOG_PATH" value="${log.root.path}/${project.artifactId}"/>
+    <property name="DEFAULT_MAX_HISTORY" value="30"/>
+
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{40}:%L - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="NormalFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${PROJECT_LOG_PATH}/normal_logs/normal.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${PROJECT_LOG_PATH}/normal_logs/normal-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>${DEFAULT_MAX_HISTORY}</maxHistory>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <pattern>
+                    <pattern>
+                        {
+                        "timestamp": "%date{yyyy-MM-dd HH:mm:ss.SSS}",
+                        "level": "%level",
+                        "marker": "%marker",
+                        "thread": "%thread",
+                        "class": "%logger{40}:%L",
+                        "msg": "%msg",
+                        "stack_trace": "%exception"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+
+    <appender name="AccessFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${PROJECT_LOG_PATH}/access_logs/access.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${PROJECT_LOG_PATH}/access_logs/access-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>${DEFAULT_MAX_HISTORY}</maxHistory>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <!-- 生产环境删除stdout输出 -->
+        <appender-ref ref="stdout"/>
+        <appender-ref ref="NormalFile"/>
+    </root>
+
+    <!-- 访问日志，仅适用于Web后台 -->
+    <logger name="AccessLog" level="INFO" additivity="false">
+        <appender-ref ref="AccessFile"/>
+        <!-- 生产环境删除stdout输出 -->
+        <appender-ref ref="stdout"/>
+    </logger>
+
+    <!-- 自定义日志输出级别 -->
+    <logger name="com.clife" level="INFO" />
+
+</configuration>
