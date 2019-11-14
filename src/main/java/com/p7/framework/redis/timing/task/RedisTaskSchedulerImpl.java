@@ -20,9 +20,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.text.ParseException;
 import java.util.*;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * 定时任务调度器
@@ -73,7 +71,23 @@ public class RedisTaskSchedulerImpl implements RedisTaskScheduler {
 
     private List<PollingThread> pollingThreads;
 
-    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 20, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(8, 8, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10000), new RejectedExecutionHandler() {
+        @Override
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+            throw new RejectedExecutionException("Task " + r.toString() + " rejected from " + executor.toString());
+        }
+    }) {
+        @Override
+        protected void afterExecute(Runnable r, Throwable t) {
+            if (this.getQueue().size() > 10000 * 0.1 && this.getCorePoolSize() < 64) {
+                this.setCorePoolSize(this.getCorePoolSize() + 4);
+            }
+        }
+    };
+
+    static {
+        executor.allowCoreThreadTimeOut(true);
+    }
 
     /**
      * @param scheduler zset
